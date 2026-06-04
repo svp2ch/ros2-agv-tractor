@@ -25,6 +25,13 @@ ekf_global:
     # world_frame = map_frame для глобального EKF (!)
     world_frame:     map
 
+    # НЕ публиковать TF map->odom: это ребро публикует slam_toolbox.
+    # Глобальный EKF здесь работает только как «вычислитель» слитой с GPS
+    # позиции в топик /odometry/filtered_map (для мониторинга и графиков
+    # сенсор-фьюжна в диссертации), но в дерево TF не вмешивается —
+    # иначе конфликт двух источников map->odom и «прыгающая» позиция.
+    publish_tf: false
+
     # ---- Источник 0: выход локального EKF (/odometry/filtered) ----
     odom0: /odometry/filtered
     # [x, y, z,      roll,  pitch, yaw,   vx,   vy,    vz,    vroll, vpitch, vyaw,  ax,    ay,    az]

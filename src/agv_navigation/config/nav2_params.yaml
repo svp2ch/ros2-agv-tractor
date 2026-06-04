@@ -338,6 +338,13 @@ lifecycle_manager_navigation:
   ros__parameters:
     use_sim_time: true
     autostart: true
+    # bond_timeout: 0.0 — ОТКЛЮЧАЕТ контроль «рукопожатия» с узлами по таймауту.
+    # На слабой/перегруженной машине (CPU-only, низкий FPS) узлы Nav2 не успевают
+    # ответить за стандартные 4 секунды, из-за чего менеджер считал их упавшими
+    # и активация всего стека срывалась → bt_navigator оставался неактивным
+    # и БЕСКОНЕЧНО отклонял цели. С 0.0 менеджер дожидается медленные узлы.
+    bond_timeout: 0.0
+    attempt_respawn_reconnection: true
     node_names:
       - map_server
       # amcl убран: slam_toolbox публикует map→odom TF сам,

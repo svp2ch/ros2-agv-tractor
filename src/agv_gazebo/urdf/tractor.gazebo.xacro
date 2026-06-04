@@ -81,9 +81,12 @@
       <max_wheel_torque>500.0</max_wheel_torque>
       <max_wheel_acceleration>5.0</max_wheel_acceleration>
 
-      <!-- Публиковать одометрию и TF odom->base_link -->
+      <!-- Публиковать одометрию в топик /odom — ДА (её читает локальный EKF).
+           Публиковать TF odom->base_link — НЕТ: иначе конфликт с локальным EKF,
+           который сам публикует это преобразование (world_frame: odom).
+           Два источника одного ребра TF приводят к «прыгающей» позиции трактора. -->
       <publish_odom>true</publish_odom>
-      <publish_odom_tf>true</publish_odom_tf>
+      <publish_odom_tf>false</publish_odom_tf>
       <!-- TF задних (ведущих) колёс публикуется через joint_state_publisher плагин,
            поэтому здесь оставляем false, чтобы не было дублирования -->
       <publish_wheel_tf>false</publish_wheel_tf>
