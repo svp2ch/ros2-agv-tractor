@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>agv_bringup</name>
+  <version>0.1.0</version>
+  <description>Единый launch-файл для запуска всей системы беспилотного трактора</description>
+  <maintainer email="danik280702@gmail.com">dan</maintainer>
+  <license>MIT</license>
+
+  <exec_depend>agv_gazebo</exec_depend>
+  <exec_depend>agv_sensor_processing</exec_depend>
+  <exec_depend>agv_navigation</exec_depend>
+  <exec_depend>agv_decision</exec_depend>
+  <exec_depend>agv_visualization</exec_depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

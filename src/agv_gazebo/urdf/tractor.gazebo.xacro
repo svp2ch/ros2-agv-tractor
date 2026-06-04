@@ -1,0 +1,328 @@
+<?xml version="1.0"?>
+<!--
+  Газебо-расширения для модели трактора.
+  Этот файл добавляет:
+    - материалы Gazebo для визуальных элементов
+    - плагин дифференциального привода (cmd_vel -> odom)
+    - плагин GPS с шумом
+    - плагин IMU с шумом
+    - плагин 2D лидара (Ray sensor)
+    - плагин RGB камеры
+  Подключается через tractor_gazebo.urdf.xacro, не самостоятельно.
+-->
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- ============================================================
+       МАТЕРИАЛЫ GAZEBO
+       ============================================================ -->
+
+  <gazebo reference="chassis_link">
+    <material>Gazebo/Green</material>
+  </gazebo>
+
+  <gazebo reference="cabin_link">
+    <material>Gazebo/DarkGreen</material>
+  </gazebo>
+
+  <gazebo reference="front_left_wheel_link">
+    <material>Gazebo/DarkGrey</material>
+    <mu1>1.0</mu1>
+    <mu2>1.0</mu2>
+    <kp>1e6</kp>
+    <kd>100.0</kd>
+  </gazebo>
+
+  <gazebo reference="front_right_wheel_link">
+    <material>Gazebo/DarkGrey</material>
+    <mu1>1.0</mu1>
+    <mu2>1.0</mu2>
+    <kp>1e6</kp>
+    <kd>100.0</kd>
+  </gazebo>
+
+  <gazebo reference="rear_left_wheel_link">
+    <material>Gazebo/DarkGrey</material>
+    <mu1>1.5</mu1>
+    <mu2>1.5</mu2>
+    <kp>1e6</kp>
+    <kd>100.0</kd>
+  </gazebo>
+
+  <gazebo reference="rear_right_wheel_link">
+    <material>Gazebo/DarkGrey</material>
+    <mu1>1.5</mu1>
+    <mu2>1.5</mu2>
+    <kp>1e6</kp>
+    <kd>100.0</kd>
+  </gazebo>
+
+  <!-- ============================================================
+       ПЛАГИН: ДИФФЕРЕНЦИАЛЬНЫЙ ПРИВОД
+       Управляет задними колёсами, публикует одометрию.
+       Подписывается: /cmd_vel (geometry_msgs/Twist)
+       Публикует:     /odom   (nav_msgs/Odometry)
+       ============================================================ -->
+  <gazebo>
+    <plugin name="diff_drive_controller" filename="libgazebo_ros_diff_drive.so">
+      <ros>
+        <remapping>cmd_vel:=/cmd_vel</remapping>
+        <remapping>odom:=/odom</remapping>
+      </ros>
+
+      <!-- Ведущие колёса — задние -->
+      <left_joint>rear_left_wheel_joint</left_joint>
+      <right_joint>rear_right_wheel_joint</right_joint>
+
+      <!-- Колея (track_width из tractor.urdf.xacro = 0.9 м) -->
+      <wheel_separation>0.9</wheel_separation>
+      <!-- Диаметр = 2 * wheel_radius = 0.6 м -->
+      <wheel_diameter>0.6</wheel_diameter>
+
+      <max_wheel_torque>500.0</max_wheel_torque>
+      <max_wheel_acceleration>5.0</max_wheel_acceleration>
+
+      <!-- Публиковать одометрию и TF odom->base_link -->
+      <publish_odom>true</publish_odom>
+      <publish_odom_tf>true</publish_odom_tf>
+      <!-- TF задних (ведущих) колёс публикуется через joint_state_publisher плагин,
+           поэтому здесь оставляем false, чтобы не было дублирования -->
+      <publish_wheel_tf>false</publish_wheel_tf>
+
+      <odometry_frame>odom</odometry_frame>
+      <robot_base_frame>base_link</robot_base_frame>
+    </plugin>
+  </gazebo>
+
+  <!-- ============================================================
+       ПЛАГИН: ПУБЛИКАЦИЯ /joint_states ДЛЯ ВСЕХ КОЛЁС
+       Без него robot_state_publisher не знает углов поворота колёс
+       и TF для front_*_wheel_link и rear_*_wheel_link не строятся.
+       Публикует реальные углы задних (ведущих) и передних (пассивных) колёс.
+       ============================================================ -->
+  <gazebo>
+    <plugin name="joint_state_publisher" filename="libgazebo_ros_joint_state_publisher.so">
+      <ros>
+        <remapping>~/out:=/joint_states</remapping>
+      </ros>
+      <update_rate>30.0</update_rate>
+      <joint_name>front_left_wheel_joint</joint_name>
+      <joint_name>front_right_wheel_joint</joint_name>
+      <joint_name>rear_left_wheel_joint</joint_name>
+      <joint_name>rear_right_wheel_joint</joint_name>
+    </plugin>
+  </gazebo>
+
+  <!-- ============================================================
+       ПЛАГИН: GPS С ШУМОМ
+       Публикует: /gps/fix (sensor_msgs/NavSatFix)
+       Частота: 5 Гц — GPS не нужен чаще
+       Шум: горизонтальный ±0.5 м, вертикальный ±1.0 м (типично для GNSS)
+       ============================================================ -->
+  <gazebo reference="gps_link">
+    <sensor type="gps" name="gps_sensor">
+      <always_on>true</always_on>
+      <update_rate>5.0</update_rate>
+      <gps>
+        <position_sensing>
+          <horizontal>
+            <noise type="gaussian">
+              <mean>0.0</mean>
+              <stddev>0.5</stddev>
+            </noise>
+          </horizontal>
+          <vertical>
+            <noise type="gaussian">
+              <mean>0.0</mean>
+              <stddev>1.0</stddev>
+            </noise>
+          </vertical>
+        </position_sensing>
+        <velocity_sensing>
+          <horizontal>
+            <noise type="gaussian">
+              <mean>0.0</mean>
+              <stddev>0.1</stddev>
+            </noise>
+          </horizontal>
+          <vertical>
+            <noise type="gaussian">
+              <mean>0.0</mean>
+              <stddev>0.1</stddev>
+            </noise>
+          </vertical>
+        </velocity_sensing>
+      </gps>
+      <plugin name="gps_plugin" filename="libgazebo_ros_gps_sensor.so">
+        <ros>
+          <remapping>~/out:=/gps/fix</remapping>
+        </ros>
+        <frame_name>gps_link</frame_name>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+  <!-- ============================================================
+       ПЛАГИН: IMU С ШУМОМ
+       Публикует: /imu/data (sensor_msgs/Imu)
+       Частота: 50 Гц (максимум по ограничениям VM из CLAUDE.md)
+       Шум: типичные параметры MEMS IMU среднего класса
+       ============================================================ -->
+  <gazebo reference="imu_link">
+    <sensor type="imu" name="imu_sensor">
+      <always_on>true</always_on>
+      <update_rate>50.0</update_rate>
+      <imu>
+        <angular_velocity>
+          <x>
+            <noise type="gaussian">
+              <mean>0.0</mean>
+              <stddev>0.009</stddev>
+              <bias_mean>0.0</bias_mean>
+              <bias_stddev>0.0003</bias_stddev>
+            </noise>
+          </x>
+          <y>
+            <noise type="gaussian">
+              <mean>0.0</mean>
+              <stddev>0.009</stddev>
+              <bias_mean>0.0</bias_mean>
+              <bias_stddev>0.0003</bias_stddev>
+            </noise>
+          </y>
+          <z>
+            <noise type="gaussian">
+              <mean>0.0</mean>
+              <stddev>0.009</stddev>
+              <bias_mean>0.0</bias_mean>
+              <bias_stddev>0.0003</bias_stddev>
+            </noise>
+          </z>
+        </angular_velocity>
+        <linear_acceleration>
+          <x>
+            <noise type="gaussian">
+              <mean>0.0</mean>
+              <stddev>0.017</stddev>
+              <bias_mean>0.1</bias_mean>
+              <bias_stddev>0.001</bias_stddev>
+            </noise>
+          </x>
+          <y>
+            <noise type="gaussian">
+              <mean>0.0</mean>
+              <stddev>0.017</stddev>
+              <bias_mean>0.1</bias_mean>
+              <bias_stddev>0.001</bias_stddev>
+            </noise>
+          </y>
+          <z>
+            <noise type="gaussian">
+              <mean>0.0</mean>
+              <stddev>0.017</stddev>
+              <bias_mean>0.1</bias_mean>
+              <bias_stddev>0.001</bias_stddev>
+            </noise>
+          </z>
+        </linear_acceleration>
+      </imu>
+      <plugin name="imu_plugin" filename="libgazebo_ros_imu_sensor.so">
+        <ros>
+          <remapping>~/out:=/imu/data</remapping>
+        </ros>
+        <frame_name>imu_link</frame_name>
+        <initial_orientation_as_reference>false</initial_orientation_as_reference>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+  <!-- ============================================================
+       ПЛАГИН: 2D ЛИДАР (Ray sensor)
+       Публикует: /scan (sensor_msgs/LaserScan)
+       Частота: 10 Гц (максимум по ограничениям VM из CLAUDE.md)
+       360 лучей — полный круговой обзор
+       Дальность: 0.1 .. 20.0 м
+       ============================================================ -->
+  <gazebo reference="lidar_link">
+    <sensor type="ray" name="lidar_sensor">
+      <always_on>true</always_on>
+      <update_rate>10.0</update_rate>
+      <pose>0 0 0 0 0 0</pose>
+      <visualize>false</visualize>
+      <ray>
+        <scan>
+          <horizontal>
+            <samples>360</samples>
+            <resolution>1</resolution>
+            <min_angle>-3.14159265</min_angle>
+            <max_angle>3.14159265</max_angle>
+          </horizontal>
+        </scan>
+        <range>
+          <!-- min=0.4 м — отсекаем самозасветку: задние лучи лидара
+               на одной высоте с GPS-антенной видели её на ~0.30 м,
+               что вызывало ложный EMERGENCY_STOP -->
+          <min>0.40</min>
+          <max>20.0</max>
+          <resolution>0.01</resolution>
+        </range>
+        <noise>
+          <type>gaussian</type>
+          <mean>0.0</mean>
+          <stddev>0.01</stddev>
+        </noise>
+      </ray>
+      <plugin name="lidar_plugin" filename="libgazebo_ros_ray_sensor.so">
+        <ros>
+          <remapping>~/out:=/scan</remapping>
+        </ros>
+        <!-- Тип выходного сообщения — 2D скан -->
+        <output_type>sensor_msgs/LaserScan</output_type>
+        <frame_name>lidar_link</frame_name>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+  <!-- ============================================================
+       ПЛАГИН: RGB КАМЕРА
+       Публикует: /camera/image_raw  (sensor_msgs/Image)
+                  /camera/camera_info (sensor_msgs/CameraInfo)
+       Частота: 5 Гц (максимум по ограничениям VM из CLAUDE.md)
+       Разрешение: 320x240 — экономит CPU и RAM
+       ============================================================ -->
+  <gazebo reference="camera_link">
+    <sensor type="camera" name="front_camera_sensor">
+      <always_on>true</always_on>
+      <update_rate>5.0</update_rate>
+      <visualize>false</visualize>
+      <camera name="front_camera">
+        <!-- Угол обзора ~80° по горизонтали -->
+        <horizontal_fov>1.3962634</horizontal_fov>
+        <image>
+          <width>320</width>
+          <height>240</height>
+          <format>R8G8B8</format>
+        </image>
+        <clip>
+          <near>0.05</near>
+          <far>50.0</far>
+        </clip>
+        <noise>
+          <type>gaussian</type>
+          <mean>0.0</mean>
+          <stddev>0.007</stddev>
+        </noise>
+      </camera>
+      <plugin name="camera_plugin" filename="libgazebo_ros_camera.so">
+        <ros>
+          <remapping>image_raw:=/camera/image_raw</remapping>
+          <remapping>camera_info:=/camera/camera_info</remapping>
+        </ros>
+        <camera_name>front_camera</camera_name>
+        <!-- Оптический фрейм (Z вперёд по конвенции ROS) -->
+        <frame_name>camera_optical_link</frame_name>
+        <hack_baseline>0.0</hack_baseline>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+</robot>

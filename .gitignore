@@ -1,0 +1,19 @@
+# --- ROS 2 / colcon артефакты сборки ---
+build/
+install/
+log/
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# --- Локальные настройки Claude Code ---
+.claude/settings.local.json
+
+# --- Системный мусор ---
+.DS_Store
+Thumbs.db
+*~
+*.swp

@@ -1,0 +1,5 @@
+# Параметры по умолчанию для robot_state_publisher
+robot_state_publisher:
+  ros__parameters:
+    publish_frequency: 50.0   # Гц — как часто публиковать TF
+    use_tf_static: true       # Публиковать статические TF (fixed joints)

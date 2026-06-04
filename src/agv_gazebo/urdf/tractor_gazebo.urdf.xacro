@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<!--
+  Полная модель трактора для Gazebo:
+  объединяет URDF-описание из agv_description
+  и плагины сенсоров/привода из agv_gazebo.
+  Именно этот файл передаётся в robot_state_publisher при запуске Gazebo.
+-->
+<robot name="agv_tractor" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- Геометрия, инерция, joints -->
+  <xacro:include filename="$(find agv_description)/urdf/tractor.urdf.xacro"/>
+
+  <!-- Плагины Gazebo: сенсоры, привод, материалы -->
+  <xacro:include filename="$(find agv_gazebo)/urdf/tractor.gazebo.xacro"/>
+
+</robot>

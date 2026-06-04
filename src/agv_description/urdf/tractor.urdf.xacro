@@ -1,0 +1,316 @@
+<?xml version="1.0"?>
+<!--
+  Модель беспилотного сельскохозяйственного трактора (AGV)
+  Геометрия упрощена для работы в условиях ограниченных ресурсов VM.
+  Размеры приблизительно соответствуют малому трактору типа МТЗ-320.
+-->
+<robot name="agv_tractor" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- ============================================================
+       КОНСТАНТЫ И ПАРАМЕТРЫ
+       ============================================================ -->
+
+  <!-- Размеры основного корпуса -->
+  <xacro:property name="chassis_length" value="2.0"/>   <!-- м, длина -->
+  <xacro:property name="chassis_width"  value="1.0"/>   <!-- м, ширина -->
+  <xacro:property name="chassis_height" value="0.5"/>   <!-- м, высота -->
+  <xacro:property name="chassis_mass"   value="800.0"/> <!-- кг -->
+
+  <!-- Параметры колёс -->
+  <xacro:property name="wheel_radius"   value="0.3"/>   <!-- м, радиус колеса -->
+  <xacro:property name="wheel_width"    value="0.2"/>   <!-- м, ширина колеса -->
+  <xacro:property name="wheel_mass"     value="30.0"/>  <!-- кг -->
+
+  <!-- Колёсная база и колея -->
+  <xacro:property name="wheelbase"      value="1.4"/>   <!-- м, продольная база -->
+  <xacro:property name="track_width"    value="0.9"/>   <!-- м, поперечная колея (полуширина) -->
+
+  <!-- Высота центра масс шасси над землёй -->
+  <xacro:property name="ground_clearance" value="0.35"/> <!-- м -->
+
+  <!-- ============================================================
+       МАКРОС: момент инерции цилиндра (для колёс)
+       ============================================================ -->
+  <xacro:macro name="cylinder_inertia" params="m r h">
+    <inertial>
+      <mass value="${m}"/>
+      <inertia
+        ixx="${m*(3*r*r + h*h)/12}"
+        ixy="0" ixz="0"
+        iyy="${m*(3*r*r + h*h)/12}"
+        iyz="0"
+        izz="${m*r*r/2}"/>
+    </inertial>
+  </xacro:macro>
+
+  <!-- ============================================================
+       МАКРОС: момент инерции параллелепипеда (для корпуса)
+       ============================================================ -->
+  <xacro:macro name="box_inertia" params="m x y z">
+    <inertial>
+      <mass value="${m}"/>
+      <inertia
+        ixx="${m*(y*y + z*z)/12}"
+        ixy="0" ixz="0"
+        iyy="${m*(x*x + z*z)/12}"
+        iyz="0"
+        izz="${m*(x*x + y*y)/12}"/>
+    </inertial>
+  </xacro:macro>
+
+  <!-- ============================================================
+       МАКРОС: колесо трактора
+       Параметры:
+         prefix  — имя (front_left, front_right, rear_left, rear_right)
+         x_pos   — смещение вперёд/назад от центра шасси
+         y_pos   — смещение влево/вправо (знак: + = левое, - = правое)
+       ============================================================ -->
+  <xacro:macro name="wheel" params="prefix x_pos y_pos">
+
+    <!-- Link колеса -->
+    <link name="${prefix}_wheel_link">
+      <visual>
+        <geometry>
+          <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+        </geometry>
+        <material name="dark_grey">
+          <color rgba="0.2 0.2 0.2 1.0"/>
+        </material>
+      </visual>
+      <collision>
+        <geometry>
+          <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+        </geometry>
+      </collision>
+      <xacro:cylinder_inertia m="${wheel_mass}" r="${wheel_radius}" h="${wheel_width}"/>
+    </link>
+
+    <!-- Joint: шасси → колесо (вращение вокруг оси Y, т.к. колесо лежит по Z) -->
+    <joint name="${prefix}_wheel_joint" type="continuous">
+      <parent link="chassis_link"/>
+      <child  link="${prefix}_wheel_link"/>
+      <!-- Колесо смещено по X (перед/зад), Y (лево/право), Z — до земли -->
+      <origin xyz="${x_pos} ${y_pos} ${-ground_clearance + wheel_radius - chassis_height/2}"
+              rpy="${pi/2} 0 0"/>
+      <axis xyz="0 0 1"/>
+      <!-- Трение и демпфирование для стабильной физики -->
+      <dynamics damping="0.1" friction="1.0"/>
+      <limit effort="500" velocity="10.0"/>
+    </joint>
+
+  </xacro:macro>
+
+  <!-- ============================================================
+       БАЗОВЫЙ LINK (необходим по стандарту ROS)
+       ============================================================ -->
+  <link name="base_link"/>
+
+  <!-- Joint: base_link → chassis_link (центр корпуса над землёй) -->
+  <joint name="base_to_chassis" type="fixed">
+    <parent link="base_link"/>
+    <child  link="chassis_link"/>
+    <origin xyz="0 0 ${ground_clearance + chassis_height/2}" rpy="0 0 0"/>
+  </joint>
+
+  <!-- ============================================================
+       КОРПУС ТРАКТОРА
+       ============================================================ -->
+  <link name="chassis_link">
+    <visual>
+      <geometry>
+        <box size="${chassis_length} ${chassis_width} ${chassis_height}"/>
+      </geometry>
+      <material name="green">
+        <color rgba="0.1 0.5 0.1 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="${chassis_length} ${chassis_width} ${chassis_height}"/>
+      </geometry>
+    </collision>
+    <xacro:box_inertia m="${chassis_mass}"
+                       x="${chassis_length}"
+                       y="${chassis_width}"
+                       z="${chassis_height}"/>
+  </link>
+
+  <!-- ============================================================
+       КОЛЁСА (4 штуки)
+       Передние: смещены на +wheelbase/2 вперёд
+       Задние:   смещены на -wheelbase/2 назад
+       ============================================================ -->
+  <xacro:wheel prefix="front_left"
+               x_pos="${wheelbase/2}"
+               y_pos="${track_width/2}"/>
+
+  <xacro:wheel prefix="front_right"
+               x_pos="${wheelbase/2}"
+               y_pos="${-track_width/2}"/>
+
+  <xacro:wheel prefix="rear_left"
+               x_pos="${-wheelbase/2}"
+               y_pos="${track_width/2}"/>
+
+  <xacro:wheel prefix="rear_right"
+               x_pos="${-wheelbase/2}"
+               y_pos="${-track_width/2}"/>
+
+  <!-- ============================================================
+       КАБИНА (упрощённая, над корпусом)
+       ============================================================ -->
+  <link name="cabin_link">
+    <visual>
+      <geometry>
+        <box size="0.8 0.8 0.7"/>
+      </geometry>
+      <material name="light_green">
+        <color rgba="0.2 0.6 0.2 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.8 0.8 0.7"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="80.0"/>
+      <inertia ixx="5.0" ixy="0" ixz="0"
+               iyy="5.0" iyz="0" izz="5.0"/>
+    </inertial>
+  </link>
+
+  <joint name="chassis_to_cabin" type="fixed">
+    <parent link="chassis_link"/>
+    <child  link="cabin_link"/>
+    <!-- Кабина сдвинута немного вперёд и вверх от корпуса -->
+    <origin xyz="0.2 0 ${chassis_height/2 + 0.35}" rpy="0 0 0"/>
+  </joint>
+
+  <!-- ============================================================
+       ТОЧКИ КРЕПЛЕНИЯ СЕНСОРОВ
+       ============================================================ -->
+
+  <!-- == GPS антенна (на крыше кабины, по центру) == -->
+  <link name="gps_link">
+    <visual>
+      <geometry>
+        <cylinder radius="0.05" length="0.08"/>
+      </geometry>
+      <material name="black">
+        <color rgba="0.05 0.05 0.05 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder radius="0.05" length="0.08"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.2"/>
+      <inertia ixx="0.001" ixy="0" ixz="0"
+               iyy="0.001" iyz="0" izz="0.001"/>
+    </inertial>
+  </link>
+
+  <joint name="cabin_to_gps" type="fixed">
+    <parent link="cabin_link"/>
+    <child  link="gps_link"/>
+    <!-- По центру крыши кабины -->
+    <origin xyz="0 0 0.39" rpy="0 0 0"/>
+  </joint>
+
+  <!-- == IMU (внутри корпуса, близко к центру масс) == -->
+  <link name="imu_link">
+    <visual>
+      <geometry>
+        <box size="0.06 0.06 0.02"/>
+      </geometry>
+      <material name="blue">
+        <color rgba="0.0 0.0 0.8 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.06 0.06 0.02"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.05"/>
+      <inertia ixx="0.0001" ixy="0" ixz="0"
+               iyy="0.0001" iyz="0" izz="0.0001"/>
+    </inertial>
+  </link>
+
+  <joint name="chassis_to_imu" type="fixed">
+    <parent link="chassis_link"/>
+    <child  link="imu_link"/>
+    <!-- В центре корпуса, слегка приподнят -->
+    <origin xyz="0 0 ${chassis_height/2 - 0.05}" rpy="0 0 0"/>
+  </joint>
+
+  <!-- == 2D Лидар (на передней части крыши, по центру) == -->
+  <link name="lidar_link">
+    <visual>
+      <geometry>
+        <cylinder radius="0.07" length="0.08"/>
+      </geometry>
+      <material name="dark_grey"/>
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder radius="0.07" length="0.08"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.3"/>
+      <inertia ixx="0.001" ixy="0" ixz="0"
+               iyy="0.001" iyz="0" izz="0.001"/>
+    </inertial>
+  </link>
+
+  <joint name="cabin_to_lidar" type="fixed">
+    <parent link="cabin_link"/>
+    <child  link="lidar_link"/>
+    <!-- Спереди кабины, на крыше — хороший обзор вперёд -->
+    <origin xyz="0.35 0 0.39" rpy="0 0 0"/>
+  </joint>
+
+  <!-- == RGB Камера (спереди корпуса, ориентирована вперёд) == -->
+  <link name="camera_link">
+    <visual>
+      <geometry>
+        <box size="0.05 0.10 0.05"/>
+      </geometry>
+      <material name="black"/>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.05 0.10 0.05"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.1"/>
+      <inertia ixx="0.0001" ixy="0" ixz="0"
+               iyy="0.0001" iyz="0" izz="0.0001"/>
+    </inertial>
+  </link>
+
+  <!-- Оптический фрейм камеры (по конвенции ROS: Z вперёд, X вправо, Y вниз) -->
+  <link name="camera_optical_link"/>
+
+  <joint name="chassis_to_camera" type="fixed">
+    <parent link="chassis_link"/>
+    <child  link="camera_link"/>
+    <!-- Спереди корпуса, на высоте ~0.3 м от верхней плоскости корпуса -->
+    <origin xyz="${chassis_length/2 - 0.03} 0 ${chassis_height/2 + 0.1}" rpy="0 0 0"/>
+  </joint>
+
+  <!-- Поворот фрейма камеры в оптическую систему координат -->
+  <joint name="camera_to_optical" type="fixed">
+    <parent link="camera_link"/>
+    <child  link="camera_optical_link"/>
+    <origin xyz="0 0 0" rpy="${-pi/2} 0 ${-pi/2}"/>
+  </joint>
+
+</robot>
