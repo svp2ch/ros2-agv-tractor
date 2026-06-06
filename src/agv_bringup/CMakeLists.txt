@@ -7,8 +7,12 @@ install(DIRECTORY launch/
   DESTINATION share/${PROJECT_NAME}/launch
 )
 
-install(DIRECTORY config/
-  DESTINATION share/${PROJECT_NAME}/config
-)
+# Папку config/ устанавливаем только если она существует
+# (сейчас она пустая/отсутствует, конфиги добавятся позже)
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/config/")
+  install(DIRECTORY config/
+    DESTINATION share/${PROJECT_NAME}/config
+  )
+endif()
 
 ament_package()
