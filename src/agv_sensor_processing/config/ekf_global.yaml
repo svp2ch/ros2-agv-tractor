@@ -25,26 +25,52 @@ ekf_global:
     # world_frame = map_frame для глобального EKF (!)
     world_frame:     map
 
-    # НЕ публиковать TF map->odom: это ребро публикует slam_toolbox.
-    # Глобальный EKF здесь работает только как «вычислитель» слитой с GPS
-    # позиции в топик /odometry/filtered_map (для мониторинга и графиков
-    # сенсор-фьюжна в диссертации), но в дерево TF не вмешивается —
-    # иначе конфликт двух источников map->odom и «прыгающая» позиция.
-    publish_tf: false
+    # ПУБЛИКОВАТЬ TF map->odom: глобальный GPS-EKF теперь основной источник
+    # локализации на поле. На безпризнаковом с/х поле slam_toolbox не может
+    # выполнить scan-matching (нет ориентиров) и выдаёт мусорный map->odom,
+    # поэтому SLAM-локализация отключена (slam:=false), а привязку к карте
+    # даёт слияние GPS+IMU+одометрия здесь — это и есть сенсор-фьюжн из темы
+    # диссертации. Конфликта двух источников map->odom больше нет.
+    publish_tf: true
 
-    # ---- Источник 0: выход локального EKF (/odometry/filtered) ----
-    odom0: /odometry/filtered
+    # Каноничный паттерн robot_localization для GPS: глобальный EKF читает
+    # ТЕ ЖЕ сырые сенсоры, что и локальный (колёсный /odom + IMU), и ДОПОЛНЯЕТ
+    # их абсолютной GPS-коррекцией. Сырой /odom даёт стабильный позиционный
+    # «хребет» (абсолютные x,y — пусть и дрейфующие), IMU — курс, GPS убирает
+    # накопленный дрейф. Раньше здесь были только скорости без позиционного
+    # якоря, и оценка уезжала на сотни/тысячи метров.
+
+    # ---- Источник 0: колёсная одометрия (/odom) — только СКОРОСТИ ----
+    # ВАЖНО: берём от колёс лишь vx и vyaw, НЕ абсолютную позицию x,y.
+    # Колёсный /odom публикуется с микроковариацией позиции (1e-5), и если
+    # отдать его абсолютные x,y в фильтр, EKF доверяет дрейфующей одометрии
+    # абсолютно и игнорирует GPS. Абсолютную привязку x,y даёт ТОЛЬКО GPS
+    # (источник 2), курс — IMU (источник 1). Это каноничная схема navsat.
     # [x, y, z,      roll,  pitch, yaw,   vx,   vy,    vz,    vroll, vpitch, vyaw,  ax,    ay,    az]
     odom0_config: [false, false, false,
                    false, false, false,
                    true,  false, false,
                    false, false, true,
                    false, false, false]
+    odom0: /odom
     odom0_differential: false
     odom0_relative: false
     odom0_queue_size: 5
 
-    # ---- Источник 1: GPS-одометрия от navsat_transform (/odometry/gps) ----
+    # ---- Источник 1: IMU (/imu/data) — абсолютный курс + угловая скорость ----
+    imu0: /imu/data
+    # [x, y, z,      roll,  pitch, yaw,   vx,    vy,    vz,    vroll, vpitch, vyaw,  ax,   ay,   az]
+    imu0_config: [false, false, false,
+                  false, false, true,
+                  false, false, false,
+                  false, false, true,
+                  false, false, false]
+    imu0_differential: false
+    imu0_relative: false
+    imu0_queue_size: 10
+    imu0_remove_gravitational_acceleration: true
+
+    # ---- Источник 2: GPS-одометрия от navsat_transform (/odometry/gps) ----
     odom1: /odometry/gps
     # GPS даёт только абсолютную позицию X, Y (в системе координат map)
     # [x, y, z,      roll,  pitch, yaw,   vx,    vy,    vz,    vroll, vpitch, vyaw,  ax,    ay,    az]

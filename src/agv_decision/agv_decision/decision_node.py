@@ -47,8 +47,11 @@ from std_msgs.msg import Bool, ColorRGBA, String
 from visualization_msgs.msg import Marker, MarkerArray
 
 
-# Максимум точек в накопленной траектории — старые отбрасываются
-_TRAJECTORY_MAX_POINTS = 500
+# Максимум точек в накопленной траектории — старые отбрасываются.
+# 8000: при ~30 Гц одометрии это ~4-5 мин движения — хватает, чтобы на
+# скриншоте для презентации была видна вся пройденная «змейка», а не
+# только последний короткий отрезок.
+_TRAJECTORY_MAX_POINTS = 8000
 
 
 class RobotState(Enum):
@@ -202,9 +205,22 @@ class DecisionNode(Node):
         self._min_dist = min(valid) if valid else float('inf')
 
     def _cb_path(self, msg: Path):
+        # Планировщик покрытия переотправляет маршрут каждые 5с (для RViz2),
+        # используя transient_local QoS. Сбрасывать прогресс (_current_wp_idx)
+        # нужно ТОЛЬКО при получении действительно НОВОГО маршрута — иначе
+        # индекс точки обнуляется каждые 5с и трактор бесконечно возвращается
+        # к точке 1, «нося́сь» по полю взад-вперёд вместо последовательного
+        # прохода маршрута.
+        is_new_path = (
+            self._coverage_path is None
+            or len(msg.poses) != len(self._coverage_path.poses)
+        )
         self._coverage_path = msg
-        self._current_wp_idx = 0
-        self.get_logger().info(f'Маршрут покрытия получен: {len(msg.poses)} точек')
+        if is_new_path:
+            self._current_wp_idx = 0
+            self.get_logger().info(
+                f'Маршрут покрытия получен: {len(msg.poses)} точек'
+            )
 
     def _cb_complete(self, msg: Bool):
         if msg.data:

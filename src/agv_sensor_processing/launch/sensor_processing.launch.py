@@ -57,7 +57,13 @@ def generate_launch_description():
         remappings=[
             ('imu/data',          '/imu/data'),
             ('gps/fix',           '/gps/fix'),
-            ('odometry/filtered', '/odometry/filtered'),
+            # ВАЖНО: navsat должен читать ГЛОБАЛЬНУЮ одометрию (фрейм map),
+            # а не локальную (фрейм odom). Тогда /odometry/gps публикуется во
+            # фрейме map, и глобальный EKF использует GPS как абсолютное
+            # измерение напрямую. Если кормить локальной одометрией, GPS выходит
+            # во фрейме odom, EKF преобразует его через свой же map->odom
+            # (циклическая зависимость) и оценка расходится, игнорируя GPS.
+            ('odometry/filtered', '/odometry/filtered_map'),
             ('odometry/gps',      '/odometry/gps'),
         ]
     )
@@ -75,6 +81,9 @@ def generate_launch_description():
         parameters=[ekf_global_cfg,
                     {'use_sim_time': True}],
         remappings=[
+            # Выход глобального EKF -> /odometry/filtered_map.
+            # Входы (odom0=/odom, imu0=/imu/data, odom1=/odometry/gps) заданы
+            # абсолютными именами в yaml и под это правило не попадают.
             ('odometry/filtered', '/odometry/filtered_map'),
         ]
     )

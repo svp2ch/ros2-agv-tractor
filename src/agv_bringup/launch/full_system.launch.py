@@ -57,8 +57,10 @@ def generate_launch_description():
 
     slam_arg = DeclareLaunchArgument(
         'slam',
-        default_value='true',
-        description='Включить SLAM (slam_toolbox)'
+        default_value='false',
+        description='Включить SLAM (slam_toolbox). По умолчанию ВЫКЛ: на '
+                    'безпризнаковом поле SLAM не локализуется; привязку к карте '
+                    'даёт глобальный GPS-EKF (map->odom через robot_localization).'
     )
 
     use_sim_time  = LaunchConfiguration('use_sim_time')
