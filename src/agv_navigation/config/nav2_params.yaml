@@ -181,24 +181,23 @@ local_costmap:
       height: 6
       resolution: 0.1
       robot_radius: 1.5  # Радиус трактора ~1.5м
-      plugins: ["voxel_layer", "inflation_layer"]
+      # 2D ObstacleLayer вместо VoxelLayer: лидар 2D и стоит на высоте 1.8м.
+      # VoxelLayer с z_voxels=16×0.1=1.6м НЕ покрывал высоту лидара (1.8м) и
+      # терял все препятствия. 2D-слой проецирует скан в плоскость (нет привязки
+      # к высоте сетки) и легче по CPU — важно для слабой VM. Источник —
+      # /scan_filtered (без самозасветки корпусом).
+      plugins: ["obstacle_layer", "inflation_layer"]
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 3.0
         inflation_radius: 2.0
-      voxel_layer:
-        plugin: "nav2_costmap_2d::VoxelLayer"
+      obstacle_layer:
+        plugin: "nav2_costmap_2d::ObstacleLayer"
         enabled: true
-        publish_voxel_map: false
-        origin_z: 0.0
-        z_resolution: 0.1   # 16 × 0.1 = 1.6м — покрывает лидар на высоте 1.45м
-        z_voxels: 16        # максимум для VoxelLayer — 16 уровней
-        max_obstacle_height: 2.0
-        mark_threshold: 0
         observation_sources: scan
         scan:
-          topic: /scan
-          max_obstacle_height: 2.0
+          topic: /scan_filtered
+          max_obstacle_height: 2.0   # точки скана на z≈1.8м проходят (<2.0)
           clearing: true
           marking: true
           data_type: "LaserScan"
@@ -236,7 +235,7 @@ global_costmap:
         enabled: true
         observation_sources: scan
         scan:
-          topic: /scan
+          topic: /scan_filtered   # без самозасветки корпусом
           max_obstacle_height: 2.0
           clearing: true
           marking: true

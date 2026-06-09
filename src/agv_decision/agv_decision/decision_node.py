@@ -147,7 +147,10 @@ class DecisionNode(Node):
         # --- Подписки ---
         self.create_subscription(Odometry, '/odometry/filtered',
                                  self._cb_odom, 10)
-        self.create_subscription(LaserScan, '/scan',
+        # /scan_filtered — скан без самозасветки корпусом (фильтр в lidar_processing,
+        # отсечка <1.0м). Сырой /scan содержит отражения от кабины при крене на
+        # развороте, из-за которых FSM залипал в AVOIDING_OBSTACLE.
+        self.create_subscription(LaserScan, '/scan_filtered',
                                  self._cb_scan, 10)
         self.create_subscription(Path, '/coverage_path',
                                  self._cb_path, _LATCHING_QOS)

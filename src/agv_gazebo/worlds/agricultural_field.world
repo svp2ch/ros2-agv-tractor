@@ -59,16 +59,16 @@
     <!-- ====== Препятствие 1: столб (дерево/межевой знак) ====== -->
     <model name="obstacle_1">
       <static>true</static>
-      <pose>5.0 3.0 0.5 0 0 0</pose>
+      <pose>5.0 3.0 1.25 0 0 0</pose>
       <link name="link">
         <collision name="collision">
           <geometry>
-            <cylinder><radius>0.1</radius><length>1.0</length></cylinder>
+            <cylinder><radius>0.1</radius><length>2.5</length></cylinder>
           </geometry>
         </collision>
         <visual name="visual">
           <geometry>
-            <cylinder><radius>0.1</radius><length>1.0</length></cylinder>
+            <cylinder><radius>0.1</radius><length>2.5</length></cylinder>
           </geometry>
           <material>
             <ambient>0.4 0.2 0.0 1</ambient>
@@ -81,16 +81,16 @@
     <!-- ====== Препятствие 2 ====== -->
     <model name="obstacle_2">
       <static>true</static>
-      <pose>-4.0 5.0 0.5 0 0 0</pose>
+      <pose>-4.0 5.0 1.25 0 0 0</pose>
       <link name="link">
         <collision name="collision">
           <geometry>
-            <cylinder><radius>0.1</radius><length>1.0</length></cylinder>
+            <cylinder><radius>0.1</radius><length>2.5</length></cylinder>
           </geometry>
         </collision>
         <visual name="visual">
           <geometry>
-            <cylinder><radius>0.1</radius><length>1.0</length></cylinder>
+            <cylinder><radius>0.1</radius><length>2.5</length></cylinder>
           </geometry>
           <material>
             <ambient>0.4 0.2 0.0 1</ambient>
@@ -103,16 +103,16 @@
     <!-- ====== Препятствие 3 ====== -->
     <model name="obstacle_3">
       <static>true</static>
-      <pose>8.0 -4.0 0.5 0 0 0</pose>
+      <pose>8.0 -4.0 1.25 0 0 0</pose>
       <link name="link">
         <collision name="collision">
           <geometry>
-            <cylinder><radius>0.1</radius><length>1.0</length></cylinder>
+            <cylinder><radius>0.1</radius><length>2.5</length></cylinder>
           </geometry>
         </collision>
         <visual name="visual">
           <geometry>
-            <cylinder><radius>0.1</radius><length>1.0</length></cylinder>
+            <cylinder><radius>0.1</radius><length>2.5</length></cylinder>
           </geometry>
           <material>
             <ambient>0.4 0.2 0.0 1</ambient>
@@ -122,19 +122,20 @@
       </link>
     </model>
 
-    <!-- ====== Препятствие 4: ящик (бочка/оборудование) ====== -->
+    <!-- ====== Препятствие 4: столб оборудования (0.5x0.5, высота 2.2м) ======
+         Высота > плоскости скана лидара (1.8м), иначе 2D-лидар не увидит. -->
     <model name="obstacle_4">
       <static>true</static>
-      <pose>-6.0 -3.0 0.25 0 0 0</pose>
+      <pose>-6.0 -3.0 1.1 0 0 0</pose>
       <link name="link">
         <collision name="collision">
           <geometry>
-            <box><size>0.5 0.5 0.5</size></box>
+            <box><size>0.5 0.5 2.2</size></box>
           </geometry>
         </collision>
         <visual name="visual">
           <geometry>
-            <box><size>0.5 0.5 0.5</size></box>
+            <box><size>0.5 0.5 2.2</size></box>
           </geometry>
           <material>
             <ambient>0.6 0.6 0.0 1</ambient>
@@ -144,19 +145,19 @@
       </link>
     </model>
 
-    <!-- ====== Препятствие 5: красный куб 1x1x1 на пути трактора ====== -->
+    <!-- ====== Препятствие 5: красная колонна 1x1, высота 2.2м, на пути трактора ====== -->
     <model name="obstacle_5">
       <static>true</static>
-      <pose>8 -13 0.5 0 0 0</pose>
+      <pose>8 -13 1.1 0 0 0</pose>
       <link name="link">
         <collision name="collision">
           <geometry>
-            <box><size>1 1 1</size></box>
+            <box><size>1 1 2.2</size></box>
           </geometry>
         </collision>
         <visual name="visual">
           <geometry>
-            <box><size>1 1 1</size></box>
+            <box><size>1 1 2.2</size></box>
           </geometry>
           <material>
             <ambient>1 0 0 1</ambient>
@@ -166,19 +167,19 @@
       </link>
     </model>
 
-    <!-- ====== Препятствие 6: синий куб 1x1x1 ====== -->
+    <!-- ====== Препятствие 6: синяя колонна 1x1, высота 2.2м ====== -->
     <model name="obstacle_6">
       <static>true</static>
-      <pose>-5 -5 0.5 0 0 0</pose>
+      <pose>-5 -5 1.1 0 0 0</pose>
       <link name="link">
         <collision name="collision">
           <geometry>
-            <box><size>1 1 1</size></box>
+            <box><size>1 1 2.2</size></box>
           </geometry>
         </collision>
         <visual name="visual">
           <geometry>
-            <box><size>1 1 1</size></box>
+            <box><size>1 1 2.2</size></box>
           </geometry>
           <material>
             <ambient>0 0 1 1</ambient>
@@ -188,19 +189,19 @@
       </link>
     </model>
 
-    <!-- ====== Препятствие 7: зелёный куб 1x1x1 ====== -->
+    <!-- ====== Препятствие 7: зелёная колонна 1x1, высота 2.2м ====== -->
     <model name="obstacle_7">
       <static>true</static>
-      <pose>12 3 0.5 0 0 0</pose>
+      <pose>12 3 1.1 0 0 0</pose>
       <link name="link">
         <collision name="collision">
           <geometry>
-            <box><size>1 1 1</size></box>
+            <box><size>1 1 2.2</size></box>
           </geometry>
         </collision>
         <visual name="visual">
           <geometry>
-            <box><size>1 1 1</size></box>
+            <box><size>1 1 2.2</size></box>
           </geometry>
           <material>
             <ambient>0 1 0 1</ambient>
